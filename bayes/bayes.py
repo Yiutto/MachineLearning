@@ -3,6 +3,7 @@
     Created by Yiutto on 2019/8/22.
 """
 from numpy import *
+import random
 def loadDataSet():
     """
     创建实验样本
@@ -133,16 +134,71 @@ def textParse(bigString):
     """
     import re
     # 利用正则表达式提取单词
-    listOfTokens = re.split(r'\W*', bigString)
+    listOfTokens = re.split(r'\W+', bigString)
     # 过滤掉一些长度小于2的字符（空字符等）
     return [tok.lower() for tok in listOfTokens if len(tok) > 2]
 
 def spamTest():
+    """
+    交叉验证朴素贝叶斯
+    :return:
+    """
     docList = []; classList = []; fullText = []
     for i in range(1, 26):
+        # 注意read()、readline()、readlines()
+
+        wordList = textParse(open('email/spam/%d.txt' % i).read())
+
+        docList.append(wordList)
+        fullText.extend(wordList)
+        classList.append(1)
+
+        wordList = textParse(open('email/ham/%d.txt' % i).read())
+        docList.append(wordList)
+        fullText.extend(wordList)
+        classList.append(0)
+    vocabList = createVocabList(docList)
+    # 随机构建训练集和测试集
+    trainingSet = list(range(50)); testSet = []
+    for i in range(10):
+        # 取随机数
+        randIndex = int(random.uniform(0, len(trainingSet)))
+        testSet.append(trainingSet[randIndex])
+        del(trainingSet[randIndex])
+    trainMat = []; trainClasses = []
+    for docIndex in trainingSet:
+        # trainMat.append(setOfWords2Vec(vocabList, docList[docIndex]))
+        trainMat.append(bagOfWords2Vec(vocabList, docList[docIndex]))
+        trainClasses.append(classList[docIndex])
+
+    p0V, p1V, pSpam = trainNB0(trainMat, trainClasses)
+    errorCount = 0
+    for docIndex in testSet:
+        # wordVector = setOfWords2Vec(vocabList, docList[docIndex])
+        wordVector = bagOfWords2Vec(vocabList, docList[docIndex])
+        if classifyNB(wordVector, p0V, p1V, pSpam) != classList[docIndex]:
+            errorCount += 1
+    print("the error rate is ", float(errorCount) / len(testSet))
+
+def calcMostFreq(vocabList, fullText):
+    """
+    统计词频，获取高频词频
+    :param vocabList:
+    :param fullText:
+    :return:
+    """
+    import operator
+    # 计算词频
+    freqDict = {}
+    for token in vocabList:
+        freqDict[token] = fullText.count(token)
+    sortedFreq = sorted(freqDict.items(), key=operator.itemgetter(1), reverse=True)
+    return sortedFreq[:30]
+
+
 
 
 if __name__ == '__main__':
-    testingNB()
-
+    # testingNB()
+    spamTest()
 
